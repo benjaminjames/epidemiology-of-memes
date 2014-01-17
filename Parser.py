@@ -1,13 +1,28 @@
 import os
-import re
 import json
 from collections import Counter
 from zipfile import BadZipFile, ZipFile
 
-def tokenizer(string):
+def tokenize(string):
 	string = string.lower()
 	for unigram in string.split():
-		re.findall('[ ]', unigram)
+		stripped = unigram.lstrip(',(?*[\'("').rstrip(':;.,?!)"-]')
+		if stripped[-2:] != 's\'':
+			stripped = stripped.rstrip("'")
+		
+		elipses = stripped.split('...')
+		dash =  stripped.split('--')
+
+		if len(elipses) > 1:
+			tokenize(' '.join(elipses))
+			continue
+		if len(dash) > 1:
+			tokenize(' '.join(dash))
+			continue
+
+		if stripped is not None:
+			yield stripped
+		continue
 		
 
 word_counts = {}
@@ -36,10 +51,18 @@ try:
 except (Exception, KeyboardInterrupt) as e:
 	print(e)
 finally:
-	with open('count.txt', 'w') as final_count:
-		unsorted_list = Counter(word_counts)
-		sorted_list = []
-		for item in unsorted_list.most_common():
-			sorted_list.append('{} -> {}'.format(*item))
-		final_count.write('\n'.join(sorted_list))
+	final_count = open('count.txt', 'w')
+	unsorted_list = Counter(word_counts)
+	sorted_list = []
+	raw_sorted = unsorted_list.most_common()
+	for item in raw_sorted:
+		sorted_list.append('{} -> {}'.format(*item))
+	final_count.write('\n'.join(sorted_list))
+	
+	shorter = []
+	without_ones = open('without_ones.txt', 'w')
+	for item in raw_sorted:
+		if item[1] > 1:
+			shorter.append('{} -> {}'.format(*item))
+	without_ones.write('\n'.join(shorter))
 
