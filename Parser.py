@@ -3,10 +3,13 @@ import json
 from collections import Counter
 from zipfile import BadZipFile, ZipFile
 
+from unigram import Unigram, db
+
+
 def tokenize(string):
 	string = string.lower()
 	for unigram in string.split():
-		stripped = unigram.lstrip(',(?*[\'("').rstrip(':;.,?!)"-]')
+		stripped = unigram.lstrip('>,(?*[\'(" ').rstrip(':;.,?!)"-] ')
 		if stripped[-2:] != 's\'':
 			stripped = stripped.rstrip("'")
 		
@@ -24,11 +27,11 @@ def tokenize(string):
 			yield stripped
 		continue
 		
-
-word_counts = {}
-try:
-	for zipped_file in os.walk('data'):
+def get_comment_data_blobs(directory='data'):
+	for zipped_file in os.walk(directory):
 		for file_name in zipped_file[2]: #The file component of the tuple
+			if file_name[-17:] != 'comments.json.zip':
+				continue
 			try:
 				prepped_zip_file = ZipFile('data/' + file_name)
 				print(file_name)
@@ -37,32 +40,31 @@ try:
 
 			for raw_file in prepped_zip_file.namelist():
 				for line in prepped_zip_file.open(raw_file, 'r'):
-					decoded_json = json.loads(line.decode())
-					try:
-						body = decoded_json['body']
-						for unigram in tokenize(body):
-							if unigram in word_counts:
-								word_counts[unigram] += 1
-							else:
-								word_counts[unigram] = 1
+					yield json.loads(line.decode())
 
-					except KeyError:
-						continue
+db.create_all()
+word_counts = {}
+try:
+	for blob in get_comment_data_blobs():
+		body = blob['body']
+		for unigram in tokenize(body):
+			if unigram in word_counts:
+				word_counts[unigram] += 1
+			else:
+				word_counts[unigram] = 1
+
 except (Exception, KeyboardInterrupt) as e:
 	print(e)
+
 finally:
 	final_count = open('count.txt', 'w')
+	without_ones = open('without_ones.txt', 'w')
+
 	unsorted_list = Counter(word_counts)
-	sorted_list = []
 	raw_sorted = unsorted_list.most_common()
 	for item in raw_sorted:
-		sorted_list.append('{} -> {}'.format(*item))
-	final_count.write('\n'.join(sorted_list))
-	
-	shorter = []
-	without_ones = open('without_ones.txt', 'w')
-	for item in raw_sorted:
+		current_item = '{} -> {}\n'.format(*item)
+		final_count.write(current_item)
 		if item[1] > 1:
-			shorter.append('{} -> {}'.format(*item))
-	without_ones.write('\n'.join(shorter))
+			without_ones.write(current_item)
 
