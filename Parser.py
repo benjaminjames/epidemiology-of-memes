@@ -44,17 +44,18 @@ def get_comment_data_blobs(directory='data'):
 
 
 def dump_into_db(db, counts):
-	print('Moving from memory into database.')
+	length = len(counts)
+	alert = 'Moving from memory into database. ({})'
+	print(alert.format(length))
 	for word in counts:
 		current = Unigram.query.filter(Unigram.id==word).first()
 		if current:
 			current.times_occurred += counts[word]
 		else:
 			current = Unigram(word, counts[word])
-		db.session.add(current)
+			db.session.add(current)
 		db.session.commit()
 
-	counts = {}
 	print('Leaving dump.')
 
 
@@ -64,7 +65,7 @@ try:
 	for blob in get_comment_data_blobs():
 		if len(word_counts) > 100000:
 			dump_into_db(db, word_counts)
-			raise KeyboardInterrupt
+			word_counts = {}
 		body = blob['body']
 		for unigram in tokenize(body):
 			if unigram in word_counts:
