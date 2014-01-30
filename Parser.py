@@ -8,8 +8,8 @@ from zipfile import BadZipFile, ZipFile
 from bookmark import Bookmark
 from unigram import Unigram, Comment, db
 
-class Parser:
 
+class Parser:
 
     def __init__(self):
         try:
@@ -31,7 +31,7 @@ class Parser:
         for zipped_file in os.walk(directory):
             for file_name in zipped_file[2]:
                 if file_name[-17:] != 'comments.json.zip' \
-                    or not self.current_position.right_file(file_name):
+                        or not self.current_position.right_file(file_name):
                     print('Skipped parsing {}'.format(file_name))
                     continue
                 try:
@@ -88,16 +88,17 @@ class Parser:
 
         for current in Unigram.query.filter(Unigram.id in self.word_counts).all():
             current.times_occurred += self.word_counts[current.id]['count']
-            current.occurs_in.extend( self.word_counts[current.id]['occurences'])
+            current.occurs_in.extend(
+                self.word_counts[current.id]['occurences'])
             del(self.word_counts[current.id])
 
         for ngram in self.word_counts:
             current = Unigram(ngram, self.word_counts[ngram]['count'],
-                                  self.word_counts[ngram]['occurences'])
+                              self.word_counts[ngram]['occurences'])
             db.session.add(current)
 
         db.session.commit()
-        print('Leaving dump after {}.'.format(datetime.now()-start))
+        print('Leaving dump after {}.'.format(datetime.now() - start))
         self.place_saved = deepcopy(self.current_position)
         self.save_place()
 

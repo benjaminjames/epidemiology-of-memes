@@ -1,4 +1,5 @@
 class Bookmark:
+
     def __init__(self, final_file=None, final_comment=None):
         self.last_finished_file = final_file
         self.last_finished_comment = final_comment
@@ -22,13 +23,16 @@ class Bookmark:
         return True
 
     def back_where_we_need_to_be(self, current_file, current_comment):
-        self.at_new = bool(self.right_file(current_file) and self.right_comment(current_comment))
+        self.at_new = bool(self.right_file(current_file)
+                           and self.right_comment(current_comment))
         return self.at_new
 
     def __repr__(self):
             return str((self.last_finished_file, self.last_finished_comment))
 
 import unittest
+
+
 class BookMarkTest(unittest.TestCase):
     files = 'abcde'
     comments = range(0, 10)
@@ -41,7 +45,8 @@ class BookMarkTest(unittest.TestCase):
             for comment in BookMarkTest.comments:
                 if _file < self.b.last_finished_file and \
                                 comment < self.b.last_finished_comment:
-                    self.assertFalse(self.b.back_where_we_need_to_be(_file, comment))
+                    self.assertFalse(
+                        self.b.back_where_we_need_to_be(_file, comment))
                 elif self.b.back_where_we_need_to_be(_file, comment):
                     self.assertEqual(self.b.last_finished_comment, comment)
                     self.assertEqual(self.b.last_finished_file, _file)
