@@ -6,15 +6,20 @@ app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
 db = SQLAlchemy(app)
 
 
-class Unigram(db.Model):
-    id = db.Column(db.String(60), primary_key=True)
-    times_occurred = db.Column(db.Integer)
-    #occurs_in = db.Column(db.Integer)
+comments = db.Table('ngrams',
+    db.Column('unigram_id', db.String, db.ForeignKey('comment.id')),
+    db.Column('comment_id', db.String, db.ForeignKey('unigram.id')))
 
-    def __init__(self, id, times_occurred):
+class Unigram(db.Model):
+    id = db.Column(db.String, primary_key=True)
+    times_occurred = db.Column(db.Integer)
+    occurs_in = db.relationship('Comment', secondary=comments,
+                    backref=db.backref('unigrams', lazy='dynamic'))
+
+    def __init__(self, id, times_occurred, occurs_in):
         self.id = id
         self.times_occurred = times_occurred
-        #self.occurs_in = occurs_in
+        self.occurs_in = occurs_in
 
     def __repr__(self):
         return '{} -> {}'.format(self.id, self.times_occurred)
