@@ -6,7 +6,7 @@ from datetime import datetime
 from zipfile import BadZipFile, ZipFile
 
 from bookmark import Bookmark
-from unigram import Unigram, Comment, db
+from unigram import Unigram, Comment, session
 
 
 class Parser:
@@ -21,7 +21,6 @@ class Parser:
 
         self.word_counts = {}
         self.place_saved = Bookmark()
-        db.create_all()
 
     def save_place(self):
         with open('.bookmark', 'w') as stopped_at:
@@ -51,10 +50,10 @@ class Parser:
                 if not self.current_position.back_where_we_need_to_be(current_file, comment.id):
                     continue
 
-                db.session.add(comment)
+                session.add(comment)
 
                 if len(self.word_counts) > 100000:
-                    self.dump_into_db(db)
+                    self.dump_into_db()
 
                 for unigram in tokenize(blob['body']):
                     if unigram in self.word_counts:
@@ -71,18 +70,18 @@ class Parser:
 
         except (KeyboardInterrupt) as e:
             print(e)
-            self.dump_into_db(db)
+            self.dump_into_db()
 
         finally:
-            final_count = sorted(Unigram.query.all(), reverse=True)
+            final_count = sorted(session.query(Unigram).all(), reverse=True)
             for unigram in final_count:
                 print('{}'.format(unigram))
 
-    def dump_into_db(self, db):
+    def dump_into_db(self):
         start = datetime.now()
         length = len(self.word_counts)
         alert = '\nMoving from memory into database. ({})'
-        db.session.commit()
+        session.commit()
 
         print(alert.format(length))
 
@@ -95,9 +94,9 @@ class Parser:
         for ngram in self.word_counts:
             current = Unigram(ngram, self.word_counts[ngram]['count'],
                               self.word_counts[ngram]['occurences'])
-            db.session.add(current)
+            session.add(current)
 
-        db.session.commit()
+        session.commit()
         print('Leaving dump after {}.'.format(datetime.now() - start))
         self.place_saved = deepcopy(self.current_position)
         self.save_place()

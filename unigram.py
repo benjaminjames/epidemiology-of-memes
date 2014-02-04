@@ -1,20 +1,28 @@
-from flask import Flask
-from flask.ext.sqlalchemy import SQLAlchemy
-
-app = Flask(__name__)
-app.config['SQLALCHEMY_DATABASE_URI'] = 'sqlite:///test.db'
-db = SQLAlchemy(app)
+from sqlalchemy.ext.declarative import declarative_base
+from sqlalchemy.orm import backref, relationship, sessionmaker
+from sqlalchemy import DateTime, Table, Column, ForeignKey, Integer, String, create_engine
 
 
-comments = db.Table('ngrams',
-    db.Column('unigram_id', db.String, db.ForeignKey('comment.id')),
-    db.Column('comment_id', db.String, db.ForeignKey('unigram.id')))
+engine = create_engine('sqlite:///test.db')
+Session = sessionmaker(bind=engine)
+session = Session()
 
-class Unigram(db.Model):
-    id = db.Column(db.String, primary_key=True)
-    times_occurred = db.Column(db.Integer)
-    occurs_in = db.relationship('Comment', secondary=comments,
-                    backref=db.backref('unigrams', lazy='dynamic'))
+Base = declarative_base()
+
+Base.metadata.create_all(engine)
+
+association_table = Table('ngrams', Base.metadata,
+    Column('unigram_id', String, ForeignKey('comment.id')),
+    Column('comment_id', String, ForeignKey('unigram.id')))
+
+
+class Unigram(Base):
+    __tablename__ = 'unigram'
+
+    id = Column(String, primary_key=True)
+    times_occurred = Column(Integer)
+    occurs_in = relationship('Comment', secondary=association_table,
+                             backref('unigrams', lazy='no-load'))
 
     def __init__(self, id, times_occurred, occurs_in):
         self.id = id
@@ -33,9 +41,11 @@ class Unigram(db.Model):
             return False
 
 
-class Comment(db.Model):
-    id = db.Column(db.String, primary_key=True, unique=True)
-    creation_time = db.Column(db.DateTime)
+class Comment(Base):
+    __tablename__ = 'comment'
+
+    id = Column(String, primary_key=True, unique=True)
+    creation_time = Column(DateTime)
 
     def __init__(self, id, creation_time):
         self.id = id
